@@ -1,0 +1,47 @@
+html {
+	text-align: center;
+}
+
+#buttons {
+	padding-left: auto;
+	padding-right: auto;
+}
+
+button {
+	background: black;
+	border: 0;
+	font-size: min(12vw, 35vh);
+}
+
+button:disabled {
+	filter: grayscale(100%);
+}
+
+#status {
+	font-size: 2em;
+	margin-bottom: 2em;
+}
+
+#spinner-wrapper {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+#spinner {
+	animation: spin 2s linear infinite;
+	border: 0.2em solid #333;
+	border-top: 0.2em solid #888;
+	border-radius: 50%;
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+}
+
+#spinner.off {
+	display: none;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}

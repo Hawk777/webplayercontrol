@@ -1,0 +1,12 @@
+html {
+	color: white;
+	background: black;
+}
+
+a, a:active, a:link, a:visited {
+	color: white;
+}
+
+.error-message {
+	color: red;
+}
