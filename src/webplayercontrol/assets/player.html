@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WebPlayerControl</title>
+<link href="../../{{hash-urlsafe:common.css}}" integrity="sha256-{{hash:common.css}}" rel="stylesheet">
+<link href="../../{{hash-urlsafe:player.css}}" integrity="sha256-{{hash:player.css}}" rel="stylesheet">
+<script type="module" integrity="sha256-{{hash:player.js}}" src="../../{{hash-urlsafe:player.js}}"></script>
+</head>
+<body>
+<h1>WebPlayerControl</h1>
+<a href="../..">← Back to player list</a>
+<div id="status">
+	<div id="spinner-wrapper">
+		<div id="spinner"></div>
+	</div>
+	<span id="status-text">Initializing</span>
+</div>
+<div id="buttons">
+<button id="goPrevious" type="button" disabled>⏮️</button>
+<button id="seekBack" type="button" disabled>⏪️</button>
+<button id="stop" type="button" disabled>⏹️</button>
+<button id="pause" type="button" disabled>⏸️</button>
+<button id="play" type="button" disabled>▶️</button>
+<button id="seekForward" type="button" disabled>⏩️</button>
+<button id="goNext" type="button" disabled>⏭️</button>
+</div>
+</body>
+</html>
