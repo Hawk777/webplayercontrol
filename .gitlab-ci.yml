@@ -42,16 +42,10 @@ Package:
       - dist/.gitignore
 
 Eslint:
-  extends: .node
+  image: registry.gitlab.com/pipeline-components/eslint:latest
   needs: []
   script:
-    - npm --cache=$NPM_CACHE_DIR ci
-    - npm --cache=$NPM_CACHE_DIR exec -- eslint --format=codeclimate --output-file=eslint-results.json .
-  after_script: ""
-  artifacts:
-    reports:
-      codequality:
-        - eslint-results.json
+    - eslint --color .
 
 Pylint:
   extends: .uv
