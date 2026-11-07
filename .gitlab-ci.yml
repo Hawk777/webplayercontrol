@@ -45,7 +45,8 @@ Eslint:
   image: registry.gitlab.com/pipeline-components/eslint:latest
   needs: []
   script:
-    - eslint --color .
+    - cp eslint.config.js /app/eslint.config.js
+    - eslint --color --config=/app/eslint.config.js .
 
 Pylint:
   extends: .uv
