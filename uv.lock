@@ -3,18 +3,6 @@ revision = 5
 requires-python = ">=3.14"
 
 [[package]]
-name = "aioscgi"
-version = "2.5.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "sioscgi" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d4/c2/5b2c491171c3b714dd0b658f663f0fe8133b259050fe145adc644d664277/aioscgi-2.5.2.tar.gz", hash = "sha256:312fd5d53b1753371f1f2eb2658f133453aed819f05a740b47fa387b84132113", size = 33828, upload-time = "2026-11-10T05:31:04.458Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f9/f2/ec18640a0e99acbecdae5fe7963ed350f9f6fdf169038ecd4bf69b842e79/aioscgi-2.5.2-py3-none-any.whl", hash = "sha256:56d5f60a74c2f0c7d12b52156d66eacc243305ffa195241f1c4049308c36548c", size = 28845, upload-time = "2026-11-10T05:31:03.548Z" },
-]
-
-[[package]]
 name = "anybadge"
 version = "1.18.0"
 source = { registry = "https://pypi.org/simple" }
@@ -412,15 +400,6 @@ wheels = [
 ]
 
 [[package]]
-name = "sioscgi"
-version = "5.0.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1b/1a/1cb4956d947e6875479eb0b99323b7cbf03bd9713af62de20ff0f403f246/sioscgi-5.0.2.tar.gz", hash = "sha256:1562ca3b9df1fdf70dbc997be7305dc9e801df6dafaed6d897fdec76428f4c8f", size = 14168, upload-time = "2026-11-03T07:15:12.771Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/9b/cb51e403b0d5f3b786341af90b26a08096ce5cd2ada720b8a93fb078e166/sioscgi-5.0.2-py3-none-any.whl", hash = "sha256:308ebe9d4751d6491291bfdb481551c2b5abf8adc6cfa914b0ce5fce7cfbd8d7", size = 11591, upload-time = "2026-11-03T07:15:11.933Z" },
-]
-
-[[package]]
 name = "tomli"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -488,7 +467,6 @@ name = "webplayercontrol"
 version = "1.0.2"
 source = { editable = "." }
 dependencies = [
-    { name = "aioscgi" },
     { name = "dbus-fast" },
 ]
 
@@ -505,10 +483,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "aioscgi", specifier = ">=2.5.1" },
-    { name = "dbus-fast", specifier = ">=5.0.22" },
-]
+requires-dist = [{ name = "dbus-fast", specifier = ">=5.0.22" }]
 
 [package.metadata.requires-dev]
 ci = [{ name = "pylint-gitlab" }]

@@ -1,3 +1,12 @@
+Changes in 1.0.2
+================
+
+Bug fixes
+---------
+
+The package no longer depends on `aioscgi`. It should work with any ASGI
+container, and should not depend on one specific one.
+
 Changes in 1.0.1
 ================
 
