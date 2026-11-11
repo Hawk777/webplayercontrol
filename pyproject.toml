@@ -17,7 +17,7 @@ dev = [
 
 [project]
 name = "webplayercontrol"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
 	"aioscgi >= 2.5.1",
 	"dbus-fast >= 5.0.22",
