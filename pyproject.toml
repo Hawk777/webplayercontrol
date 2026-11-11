@@ -16,7 +16,7 @@ dev = [
 
 [project]
 name = "webplayercontrol"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
 	"dbus-fast >= 5.0.22",
 ]
