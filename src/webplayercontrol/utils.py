@@ -32,6 +32,8 @@ def acceptable(mime_type: bytes, headers: Iterable[tuple[bytes, bytes]]) -> bool
     :return: True if :param mime_type: is acceptable according to :param scope:’s Accept
         header, or False if not.
     """
+    if (semi_pos := mime_type.find(b";")) != -1:
+        mime_type = mime_type[:semi_pos]
     main_type = mime_type[: mime_type.find(b"/")]
     partial_wildcard = main_type + b"/*"
     wanted = {mime_type, partial_wildcard, b"*/*"}
