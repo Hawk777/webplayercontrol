@@ -11,7 +11,7 @@ from os import environ
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .utils import acceptable, discards_request, send_error, unmodified
+from .utils import acceptable, allows_method, discards_request, send_error, unmodified
 
 if TYPE_CHECKING:
     from asgi_types import (
@@ -200,6 +200,7 @@ class AssetHandler:
             cache_control=cache_control,
         )
 
+    @allows_method("GET")
     @discards_request
     async def _handle(
         self,
@@ -217,11 +218,6 @@ class AssetHandler:
         :param asset: Which asset to send.
         :param cache_control: The value of the cache-control header.
         """
-        # Static assets can only handle GET requests.
-        if scope["method"] != "GET":
-            await send_error(send, 405, "Method Not Allowed")
-            return
-
         # Check that the asset’s content type is acceptable to the client.
         if not acceptable(asset.file_type.mime_type, scope["headers"]):
             await send_error(send, 406, "Not Acceptable")

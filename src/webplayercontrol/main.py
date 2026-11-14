@@ -9,7 +9,13 @@ from typing import TYPE_CHECKING
 from .assets import AssetHandler
 from .mpris import COMMANDS, AccessDeniedError, NotFoundError
 from .mpris import App as MPRISApp
-from .utils import acceptable, discard_request, discards_request, send_error
+from .utils import (
+    acceptable,
+    allows_method,
+    discard_request,
+    discards_request,
+    send_error,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -178,6 +184,7 @@ class _App:
         )
         await send({"type": "http.response.body", "body": b""})
 
+    @allows_method("GET")
     @discards_request
     async def _handle_players_list(
         self,
@@ -197,9 +204,6 @@ class _App:
         :param scope: The scope.
         :param send: The event-send function.
         """
-        if scope["method"] != "GET":
-            await send_error(send, 405, "Method Not Allowed")
-            return
         if not acceptable(b"application/json", scope["headers"]):
             await send_error(send, 406, "Not Acceptable")
             return
@@ -285,6 +289,7 @@ class _App:
             if event["type"] == "http.disconnect":
                 raise _ClientDisconnectedError
 
+    @allows_method("GET")
     async def _handle_player_status(
         self,
         scope: HTTPScope,
@@ -303,11 +308,6 @@ class _App:
         """
         # Receive and discard any request body.
         await discard_request(receive)
-
-        # The status endpoint can only handle GET requests.
-        if scope["method"] != "GET":
-            await send_error(send, 405, "Method Not Allowed")
-            return
 
         # The status endpoint always sends text/event-stream.
         if not acceptable(b"text/event-stream", scope["headers"]):

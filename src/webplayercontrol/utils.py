@@ -49,6 +49,46 @@ def acceptable(mime_type: bytes, headers: Iterable[tuple[bytes, bytes]]) -> bool
     return True
 
 
+# https://github.com/pylint-dev/pylint/issues/9884
+# pylint: disable-next=redefined-outer-name
+def allows_method[Cls, **Args](
+    method: str,
+) -> Callable[
+    [HTTPApplicationMethodExt[Cls, Args]],
+    HTTPApplicationMethodExt[Cls, Args],
+]:
+    """
+    Decorate an HTTP request handler to check that a certain HTTP method is used.
+
+    Calls that do not use the proper method are automatically rejected with status code
+    405 (Method Not Allowed) and do not invoke the wrapped handler.
+
+    :param method: The required HTTP method.
+    """
+
+    def decorator(
+        app: HTTPApplicationMethodExt[Cls, Args],
+    ) -> HTTPApplicationMethodExt[Cls, Args]:
+        @wraps(app)
+        async def inner(
+            obj: Cls,
+            scope: HTTPScope,
+            receive: ASGIReceiveCallable,
+            send: ASGISendCallable,
+            *args: Args.args,
+            **kwargs: Args.kwargs,
+        ) -> None:
+            if scope["method"] != method:
+                await discard_request(receive)
+                await send_error(send, 405, "Method Not Allowed")
+                return
+            await app(obj, scope, receive, send, *args, **kwargs)
+
+        return inner
+
+    return decorator
+
+
 async def discard_request(receive: ASGIReceiveCallable) -> None:
     """
     Read and discard the request body.
