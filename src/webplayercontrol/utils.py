@@ -3,9 +3,16 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Awaitable, Callable, Iterable
 
-    from asgi_types import ASGIReceiveCallable, ASGISendCallable
+    from asgi_types import ASGIReceiveCallable, ASGISendCallable, HTTPScope
+
+
+type HTTPApplication = Callable[
+    [HTTPScope, ASGIReceiveCallable, ASGISendCallable],
+    Awaitable[None],
+]
+"""A type alias for an HTTP request handler."""
 
 
 def acceptable(mime_type: bytes, headers: Iterable[tuple[bytes, bytes]]) -> bool:
