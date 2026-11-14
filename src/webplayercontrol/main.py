@@ -279,7 +279,11 @@ class _App:
 
     @staticmethod
     async def _handle_player_status_disconnect(receive: ASGIReceiveCallable) -> None:
-        """Raise an exception when a client disconnects from the status endpoint."""
+        """
+        Raise an exception when a client disconnects from the status endpoint.
+
+        :param receive: The event-receive function.
+        """
         while True:
             event = await receive()
             if event["type"] == "http.disconnect":
