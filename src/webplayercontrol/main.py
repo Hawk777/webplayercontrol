@@ -371,46 +371,30 @@ class _App:
         await send({"type": "http.response.start", "status": 204})
         await send({"type": "http.response.body", "body": b""})
 
-    async def _handle_players_url(
-        self,
-        path: str,
-        scope: HTTPScope,
-        receive: ASGIReceiveCallable,
-        send: ASGISendCallable,
-    ) -> None:
+    def _resolve_players_url(self, path: str) -> HTTPApplication | None:
         """
-        Handle URLs starting with players/.
+        Look up the handler for a URL starting with players/.
 
         :param path: The remaining path, relative to players/.
-        :param scope: The scope.
-        :param receive: The event-receive function.
-        :param send: The event-send function.
+        :return: The proper handler, or None to return 404.
         """
         if path == "":
-            await self._handle_players_list(scope, receive, send)
-            return
+            return self._handle_players_list
         parts = path.split("/", 1)
         if len(parts) != 2:  # noqa: PLR2004
-            await discard_request(receive)
-            await send_error(send, 404, "Not Found")
-            return
+            return None
         player_id, resource = parts
         if not self._mpris.has_player(player_id):
-            await discard_request(receive)
-            await send_error(send, 404, "Not Found")
-            return
+            return None
         match resource:
             case "":
-                handler = self._assets.handler_for_name("player.html", b"no-store")
-                await handler(scope, receive, send)
+                return self._assets.handler_for_name("player.html", b"no-store")
             case "status":
-                await self._handle_player_status(player_id, scope, receive, send)
+                return partial(self._handle_player_status, player_id)
             case _:
                 if (command := COMMANDS.get(resource)) is None:
-                    await discard_request(receive)
-                    await send_error(send, 404, "Not Found")
-                    return
-                await self._handle_command(player_id, command, scope, receive, send)
+                    return None
+                return partial(self._handle_command, player_id, command)
 
     def _resolve_url(self, scope: HTTPScope) -> HTTPApplication | None:
         """
@@ -445,8 +429,7 @@ class _App:
         if path == "":
             return self._assets.handler_for_name("index.html", b"max-age=60")
         if path.startswith("players/"):
-            path = path.removeprefix("players/")
-            return partial(self._handle_players_url, path)
+            return self._resolve_players_url(path.removeprefix("players/"))
         return None
 
     async def run_http(
