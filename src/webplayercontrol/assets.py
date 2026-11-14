@@ -11,11 +11,10 @@ from os import environ
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .utils import acceptable, discard_request, send_error, unmodified
+from .utils import acceptable, discards_request, send_error, unmodified
 
 if TYPE_CHECKING:
     from asgi_types import (
-        ASGIReceiveCallable,
         ASGISendCallable,
         HTTPScope,
     )
@@ -201,10 +200,10 @@ class AssetHandler:
             cache_control=cache_control,
         )
 
+    @discards_request
     async def _handle(
         self,
         scope: HTTPScope,
-        receive: ASGIReceiveCallable,
         send: ASGISendCallable,
         *,
         asset: _Asset,
@@ -214,14 +213,10 @@ class AssetHandler:
         Handle a request as a static asset.
 
         :param scope: The scope.
-        :param receive: The event-receive function.
         :param send: The event-send function.
         :param asset: Which asset to send.
         :param cache_control: The value of the cache-control header.
         """
-        # Receive and discard any request body.
-        await discard_request(receive)
-
         # Static assets can only handle GET requests.
         if scope["method"] != "GET":
             await send_error(send, 405, "Method Not Allowed")

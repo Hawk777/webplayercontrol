@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from .assets import AssetHandler
 from .mpris import COMMANDS, AccessDeniedError, NotFoundError
 from .mpris import App as MPRISApp
-from .utils import acceptable, discard_request, send_error
+from .utils import acceptable, discard_request, discards_request, send_error
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -156,22 +156,18 @@ class _App:
         del state["webplayercontrol"]
         await app.aclose()
 
+    @discards_request
     async def _redirect_add_slash(
         self,
         scope: HTTPScope,
-        receive: ASGIReceiveCallable,
         send: ASGISendCallable,
     ) -> None:
         """
         Redirect to the requested path plus a slash.
 
         :param scope: The scope.
-        :param receive: The event-receive function.
         :param send: The event-send function.
         """
-        # Receive and discard any body.
-        await discard_request(receive)
-
         # Send the response.
         await send(
             {
@@ -182,10 +178,10 @@ class _App:
         )
         await send({"type": "http.response.body", "body": b""})
 
+    @discards_request
     async def _handle_players_list(
         self,
         scope: HTTPScope,
-        receive: ASGIReceiveCallable,
         send: ASGISendCallable,
     ) -> None:
         """
@@ -199,10 +195,8 @@ class _App:
         display names.
 
         :param scope: The scope.
-        :param receive: The event-receive function.
         :param send: The event-send function.
         """
-        await discard_request(receive)
         if scope["method"] != "GET":
             await send_error(send, 405, "Method Not Allowed")
             return
@@ -349,10 +343,10 @@ class _App:
                     )
                     tg.create_task(self._handle_player_status_disconnect(receive))
 
+    @discards_request
     async def _handle_command(
         self,
         _scope: HTTPScope,
-        receive: ASGIReceiveCallable,
         send: ASGISendCallable,
         *,
         player_id: str,
@@ -362,12 +356,10 @@ class _App:
         Handle URLs that submit commands to players.
 
         :param _scope: The scope.
-        :param receive: The event-receive function.
         :param send: The event-send function.
         :param player_id: The unique bus name of the player.
         :param command: The command to invoke.
         """
-        await discard_request(receive)
         try:
             await command(self._mpris, player_id)
         except NotFoundError:

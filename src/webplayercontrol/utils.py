@@ -1,9 +1,11 @@
 """Utility functions used by multiple consumers."""
 
+from functools import wraps
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Iterable
+    from typing import Concatenate
 
     from asgi_types import ASGIReceiveCallable, ASGISendCallable, HTTPScope
 
@@ -13,6 +15,12 @@ type HTTPApplication = Callable[
     Awaitable[None],
 ]
 """A type alias for an HTTP request handler."""
+
+type HTTPApplicationMethodExt[Cls, **Args] = Callable[
+    Concatenate[Cls, HTTPScope, ASGIReceiveCallable, ASGISendCallable, Args],
+    Awaitable[None],
+]
+"""A type alias for an HTTP request handler method with extra parameters."""
 
 
 def acceptable(mime_type: bytes, headers: Iterable[tuple[bytes, bytes]]) -> bool:
@@ -59,6 +67,32 @@ async def discard_request(receive: ASGIReceiveCallable) -> None:
             case _:
                 msg = f"Unexpected HTTP event {event_type}"
                 raise ValueError(msg)
+
+
+# https://github.com/pylint-dev/pylint/issues/9884
+# pylint: disable-next=redefined-outer-name
+def discards_request[Cls, **Args](
+    app: Callable[Concatenate[Cls, HTTPScope, ASGISendCallable, Args], Awaitable[None]],
+) -> HTTPApplicationMethodExt[Cls, Args]:
+    """
+    Decorate a method to read and discard the body before executing it.
+
+    :param app: The method to decorate.
+    """
+
+    @wraps(app)
+    async def inner(
+        obj: Cls,
+        scope: HTTPScope,
+        receive: ASGIReceiveCallable,
+        send: ASGISendCallable,
+        *args: Args.args,
+        **kwargs: Args.kwargs,
+    ) -> None:
+        await discard_request(receive)
+        await app(obj, scope, send, *args, **kwargs)
+
+    return inner
 
 
 async def send_error(send: ASGISendCallable, status: int, message: str) -> None:
