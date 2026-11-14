@@ -10,10 +10,10 @@ from .assets import AssetHandler
 from .mpris import COMMANDS, AccessDeniedError, NotFoundError
 from .mpris import App as MPRISApp
 from .utils import (
-    acceptable,
     allows_method,
     discard_request,
     discards_request,
+    response_content_type,
     send_error,
 )
 
@@ -185,10 +185,11 @@ class _App:
         await send({"type": "http.response.body", "body": b""})
 
     @allows_method("GET")
+    @response_content_type(b"application/json")
     @discards_request
     async def _handle_players_list(
         self,
-        scope: HTTPScope,
+        _scope: HTTPScope,
         send: ASGISendCallable,
     ) -> None:
         """
@@ -201,27 +202,19 @@ class _App:
         where foo and baz are D-Bus object paths and bar and quux are human-readable
         display names.
 
-        :param scope: The scope.
+        :param _scope: The scope.
         :param send: The event-send function.
         """
-        if not acceptable(b"application/json", scope["headers"]):
-            await send_error(send, 406, "Not Acceptable")
-            return
         players = [i async for i in self._mpris.list_players()]
         players.sort(key=lambda i: i[1])
         players = json.dumps(players)
         players = players.encode("UTF-8")
         headers = [
-            (b"content-type", b"application/json"),
             (b"content-length", str(len(players)).encode("ASCII")),
             (b"cache-control", b"no-store"),
         ]
         await send(
-            {
-                "type": "http.response.start",
-                "status": 200,
-                "headers": headers,
-            },
+            {"type": "http.response.start", "status": 200, "headers": headers},
         )
         await send({"type": "http.response.body", "body": players})
 
@@ -290,9 +283,10 @@ class _App:
                 raise _ClientDisconnectedError
 
     @allows_method("GET")
+    @response_content_type(b"text/event-stream")
     async def _handle_player_status(
         self,
-        scope: HTTPScope,
+        _scope: HTTPScope,
         receive: ASGIReceiveCallable,
         send: ASGISendCallable,
         *,
@@ -301,18 +295,13 @@ class _App:
         """
         Handle the players/<foo>/status URL.
 
-        :param scope: The scope.
+        :param _scope: The scope.
         :param receive: The event-receive function.
         :param send: The event-send function.
         :param player_id: The player object path.
         """
         # Receive and discard any request body.
         await discard_request(receive)
-
-        # The status endpoint always sends text/event-stream.
-        if not acceptable(b"text/event-stream", scope["headers"]):
-            await send_error(send, 406, "Not Acceptable")
-            return
 
         # Open a monitor.
         try:
@@ -327,13 +316,7 @@ class _App:
         # Run the event stream.
         with closing(monitor):
             # Send the headers.
-            await send(
-                {
-                    "type": "http.response.start",
-                    "status": 200,
-                    "headers": [(b"content-type", b"text/event-stream")],
-                },
-            )
+            await send({"type": "http.response.start", "status": 200})
 
             # Spawn tasks to send the data.
             with suppress(_ClientDisconnectedError):

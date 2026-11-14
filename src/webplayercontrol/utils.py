@@ -7,7 +7,12 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Iterable
     from typing import Concatenate
 
-    from asgi_types import ASGIReceiveCallable, ASGISendCallable, HTTPScope
+    from asgi_types import (
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        ASGISendEvent,
+        HTTPScope,
+    )
 
 
 type HTTPApplication = Callable[
@@ -135,6 +140,59 @@ def discards_request[Cls, **Args](
         await app(obj, scope, send, *args, **kwargs)
 
     return inner
+
+
+# https://github.com/pylint-dev/pylint/issues/9884
+# pylint: disable-next=redefined-outer-name
+def response_content_type[Cls, **Args](
+    content_type: bytes,
+) -> Callable[
+    [HTTPApplicationMethodExt[Cls, Args]],
+    HTTPApplicationMethodExt[Cls, Args],
+]:
+    """
+    Decorate an HTTP request handler for a specific response body content type.
+
+    Requests that have an Accept header that does not permit the specified content type
+    will be rejected with status code 406 (Not Acceptable). Responses with status 200
+    will automatically have a Content-Type header added, unless the handler already
+    provides one.
+
+    :param content_type: The content type.
+    """
+    ok = 200
+
+    def decorator(
+        app: HTTPApplicationMethodExt[Cls, Args],
+    ) -> HTTPApplicationMethodExt[Cls, Args]:
+        @wraps(app)
+        async def inner(
+            obj: Cls,
+            scope: HTTPScope,
+            receive: ASGIReceiveCallable,
+            send: ASGISendCallable,
+            *args: Args.args,
+            **kwargs: Args.kwargs,
+        ) -> None:
+            if not acceptable(content_type, scope.get("headers", [])):
+                await discard_request(receive)
+                await send_error(send, 406, "Not Acceptable")
+                return
+
+            @wraps(send)
+            async def wrapped_send(event: ASGISendEvent) -> None:
+                if event["type"] == "http.response.start" and event["status"] == ok:
+                    headers: list[tuple[bytes, bytes]] = list(event.get("headers", []))
+                    if not any(k == b"content-type" for (k, _) in headers):
+                        headers.append((b"content-type", content_type))
+                    event = {**event, "headers": headers}
+                await send(event)
+
+            await app(obj, scope, receive, wrapped_send, *args, **kwargs)
+
+        return inner
+
+    return decorator
 
 
 async def send_error(send: ASGISendCallable, status: int, message: str) -> None:
