@@ -12,6 +12,8 @@ from .mpris import App as MPRISApp
 from .utils import acceptable, discard_request, send_error
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from asgi_types import (
         ASGIReceiveCallable,
         ASGISendCallable,
@@ -340,6 +342,35 @@ class _App:
                     )
                     tg.create_task(self._handle_player_status_disconnect(receive))
 
+    async def _handle_command(
+        self,
+        player_id: str,
+        command: Callable[[MPRISApp, str], Awaitable[None]],
+        _scope: HTTPScope,
+        receive: ASGIReceiveCallable,
+        send: ASGISendCallable,
+    ) -> None:
+        """
+        Handle URLs that submit commands to players.
+
+        :param player_id: The unique bus name of the player.
+        :param command: The command to invoke.
+        :param _scope: The scope.
+        :param receive: The event-receive function.
+        :param send: The event-send function.
+        """
+        await discard_request(receive)
+        try:
+            await command(self._mpris, player_id)
+        except NotFoundError:
+            await send_error(send, 404, "Not Found")
+            return
+        except AccessDeniedError:
+            await send_error(send, 403, "Forbidden")
+            return
+        await send({"type": "http.response.start", "status": 204})
+        await send({"type": "http.response.body", "body": b""})
+
     async def _handle_players_url(
         self,
         path: str,
@@ -375,20 +406,11 @@ class _App:
             case "status":
                 await self._handle_player_status(player_id, scope, receive, send)
             case _:
-                await discard_request(receive)
                 if (command := COMMANDS.get(resource)) is None:
+                    await discard_request(receive)
                     await send_error(send, 404, "Not Found")
                     return
-                try:
-                    await command(self._mpris, player_id)
-                except NotFoundError:
-                    await send_error(send, 404, "Not Found")
-                    return
-                except AccessDeniedError:
-                    await send_error(send, 403, "Forbidden")
-                    return
-                await send({"type": "http.response.start", "status": 204})
-                await send({"type": "http.response.body", "body": b""})
+                await self._handle_command(player_id, command, scope, receive, send)
 
     def _resolve_url(self, scope: HTTPScope) -> HTTPApplication | None:
         """
