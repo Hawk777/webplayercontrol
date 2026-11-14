@@ -4,6 +4,7 @@ import binascii
 import importlib.resources
 from base64 import b64encode, urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import dataclass
+from functools import partial
 from hashlib import sha256
 from logging import getLogger
 from os import environ
@@ -18,6 +19,8 @@ if TYPE_CHECKING:
         ASGISendCallable,
         HTTPScope,
     )
+
+    from .utils import HTTPApplication
 
 
 @dataclass(frozen=True)
@@ -152,6 +155,45 @@ class AssetHandler:
                     content[:pos] + encode(hashes[target_name]) + content[end_pos + 2 :]
                 )
         return content
+
+    def handler_for_hash(
+        self,
+        path: str,
+    ) -> HTTPApplication | None:
+        """
+        Get a handler for a request for an asset hash, if the path is one.
+
+        :param path: The request path, excluding the application mount point and leading
+            slash.
+        :return: A handler that sends the asset, if an asset matches, or None of :param
+            path: is not an asset hash.
+        """
+        try:
+            h = urlsafe_b64decode(path.encode("UTF-8"))
+        except binascii.Error:
+            return None
+        if (asset := self._assets.get(h)) is None:
+            return None
+        return partial(
+            self._handle,
+            asset,
+            b"max-age=31536000, immutable, stale-while-revalidate=31536000",
+        )
+
+    def handler_for_name(
+        self,
+        name: str,
+        cache_control: bytes,
+    ) -> HTTPApplication:
+        """
+        Get a handler for a request for an asset by filename.
+
+        :param name: The filename of the asset.
+        :param cache_control: The value of the cache-control header to return.
+        :return: A handler that sends the asset.
+        :throws KeyError: If :param name: does not match any asset.
+        """
+        return partial(self._handle, self._assets[self._hashes[name]], cache_control)
 
     async def maybe_handle_cas(
         self,
