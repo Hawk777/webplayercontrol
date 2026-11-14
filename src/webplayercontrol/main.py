@@ -156,8 +156,8 @@ class _App:
         del state["webplayercontrol"]
         await app.aclose()
 
-    @staticmethod
     async def _redirect_add_slash(
+        self,
         scope: HTTPScope,
         receive: ASGIReceiveCallable,
         send: ASGISendCallable,
@@ -227,8 +227,8 @@ class _App:
         )
         await send({"type": "http.response.body", "body": players})
 
-    @staticmethod
     async def _handle_player_status_updates(
+        self,
         monitor: Monitor,
         send: ASGISendCallable,
     ) -> None:
@@ -277,8 +277,10 @@ class _App:
                     {"type": "http.response.body", "body": b":\n\n", "more_body": True},
                 )
 
-    @staticmethod
-    async def _handle_player_status_disconnect(receive: ASGIReceiveCallable) -> None:
+    async def _handle_player_status_disconnect(
+        self,
+        receive: ASGIReceiveCallable,
+    ) -> None:
         """
         Raise an exception when a client disconnects from the status endpoint.
 
