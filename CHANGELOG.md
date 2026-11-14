@@ -8,6 +8,10 @@ The command URLs for controlling a player previously allowed any HTTP method.
 They now correctly only allow `POST` requests, returning 405 Method Not Allowed
 for any other.
 
+All HTTP responses may, and HTTP 405 Method Not Allowed responses *must*,
+contain an `Allow` header indicating what HTTP methods are permitted to the
+given URL. This was previously not sent. It now is.
+
 Changes in 1.0.2
 ================
 

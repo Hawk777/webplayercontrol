@@ -68,10 +68,13 @@ def allows_method[Cls, **Args](
     Decorate an HTTP request handler to check that a certain HTTP method is used.
 
     Calls that do not use the proper method are automatically rejected with status code
-    405 (Method Not Allowed) and do not invoke the wrapped handler.
+    405 (Method Not Allowed) and do not invoke the wrapped handler. All calls,
+    successful or not, have the Allow header added to the response automatically unless
+    the wrapped handler provides it.
 
     :param method: The required HTTP method.
     """
+    allow_header = (b"allow", method.encode("UTF-8"))
 
     def decorator(
         app: HTTPApplicationMethodExt[Cls, Args],
@@ -85,11 +88,20 @@ def allows_method[Cls, **Args](
             *args: Args.args,
             **kwargs: Args.kwargs,
         ) -> None:
+            @wraps(send)
+            async def wrapped_send(event: ASGISendEvent) -> None:
+                if event["type"] == "http.response.start":
+                    headers = list(event.get("headers", []))
+                    if not any(k == b"allow" for (k, _) in headers):
+                        headers.append(allow_header)
+                    event = {**event, "headers": headers}
+                await send(event)
+
             if scope["method"] != method:
                 await discard_request(receive)
-                await send_error(send, 405, "Method Not Allowed")
+                await send_error(wrapped_send, 405, "Method Not Allowed")
                 return
-            await app(obj, scope, receive, send, *args, **kwargs)
+            await app(obj, scope, receive, wrapped_send, *args, **kwargs)
 
         return inner
 
