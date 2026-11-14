@@ -370,13 +370,8 @@ class _App:
             return
         match resource:
             case "":
-                await self._assets.handle(
-                    "player.html",
-                    b"no-store",
-                    scope,
-                    receive,
-                    send,
-                )
+                handler = self._assets.handler_for_name("player.html", b"no-store")
+                await handler(scope, receive, send)
             case "status":
                 await self._handle_player_status(player_id, scope, receive, send)
             case _:
