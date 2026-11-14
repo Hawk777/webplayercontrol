@@ -176,8 +176,10 @@ class AssetHandler:
             return None
         return partial(
             self._handle,
-            asset,
-            b"max-age=31536000, immutable, stale-while-revalidate=31536000",
+            asset=asset,
+            cache_control=(
+                b"max-age=31536000, immutable, stale-while-revalidate=31536000"
+            ),
         )
 
     def handler_for_name(
@@ -193,24 +195,29 @@ class AssetHandler:
         :return: A handler that sends the asset.
         :throws KeyError: If :param name: does not match any asset.
         """
-        return partial(self._handle, self._assets[self._hashes[name]], cache_control)
+        return partial(
+            self._handle,
+            asset=self._assets[self._hashes[name]],
+            cache_control=cache_control,
+        )
 
     async def _handle(
         self,
-        asset: _Asset,
-        cache_control: bytes,
         scope: HTTPScope,
         receive: ASGIReceiveCallable,
         send: ASGISendCallable,
+        *,
+        asset: _Asset,
+        cache_control: bytes,
     ) -> None:
         """
         Handle a request as a static asset.
 
-        :param asset: Which asset to send.
-        :param cache_control: The value of the cache-control header.
         :param scope: The scope.
         :param receive: The event-receive function.
         :param send: The event-send function.
+        :param asset: Which asset to send.
+        :param cache_control: The value of the cache-control header.
         """
         # Receive and discard any request body.
         await discard_request(receive)

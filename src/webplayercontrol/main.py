@@ -293,18 +293,19 @@ class _App:
 
     async def _handle_player_status(
         self,
-        player_id: str,
         scope: HTTPScope,
         receive: ASGIReceiveCallable,
         send: ASGISendCallable,
+        *,
+        player_id: str,
     ) -> None:
         """
         Handle the players/<foo>/status URL.
 
-        :param player_id: The player object path.
         :param scope: The scope.
         :param receive: The event-receive function.
         :param send: The event-send function.
+        :param player_id: The player object path.
         """
         # Receive and discard any request body.
         await discard_request(receive)
@@ -350,20 +351,21 @@ class _App:
 
     async def _handle_command(
         self,
-        player_id: str,
-        command: Callable[[MPRISApp, str], Awaitable[None]],
         _scope: HTTPScope,
         receive: ASGIReceiveCallable,
         send: ASGISendCallable,
+        *,
+        player_id: str,
+        command: Callable[[MPRISApp, str], Awaitable[None]],
     ) -> None:
         """
         Handle URLs that submit commands to players.
 
-        :param player_id: The unique bus name of the player.
-        :param command: The command to invoke.
         :param _scope: The scope.
         :param receive: The event-receive function.
         :param send: The event-send function.
+        :param player_id: The unique bus name of the player.
+        :param command: The command to invoke.
         """
         await discard_request(receive)
         try:
@@ -396,11 +398,15 @@ class _App:
             case "":
                 return self._assets.handler_for_name("player.html", b"no-store")
             case "status":
-                return partial(self._handle_player_status, player_id)
+                return partial(self._handle_player_status, player_id=player_id)
             case _:
                 if (command := COMMANDS.get(resource)) is None:
                     return None
-                return partial(self._handle_command, player_id, command)
+                return partial(
+                    self._handle_command,
+                    player_id=player_id,
+                    command=command,
+                )
 
     def _resolve_url(self, scope: HTTPScope) -> HTTPApplication | None:
         """
