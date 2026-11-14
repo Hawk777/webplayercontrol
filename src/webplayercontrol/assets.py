@@ -195,63 +195,6 @@ class AssetHandler:
         """
         return partial(self._handle, self._assets[self._hashes[name]], cache_control)
 
-    async def maybe_handle_cas(
-        self,
-        path: str,
-        scope: HTTPScope,
-        receive: ASGIReceiveCallable,
-        send: ASGISendCallable,
-    ) -> bool:
-        """
-        Handle a request if it matches the name of a content-addressable asset.
-
-        :param path: The request path.
-        :param scope: The scope.
-        :param receive: The event-receive function.
-        :param send: The event-send function.
-        :return: True if the request matched a content-addressable asset and has been
-            handled, or False if it did not match any such name.
-        """
-        try:
-            h = urlsafe_b64decode(path.encode("UTF-8"))
-        except binascii.Error:
-            return False
-        if (asset := self._assets.get(h)) is None:
-            return False
-        await self._handle(
-            asset,
-            b"max-age=31536000, immutable, stale-while-revalidate=31536000",
-            scope,
-            receive,
-            send,
-        )
-        return True
-
-    async def handle(
-        self,
-        asset: str,
-        cache_control: bytes,
-        scope: HTTPScope,
-        receive: ASGIReceiveCallable,
-        send: ASGISendCallable,
-    ) -> None:
-        """
-        Handle a request as a static asset.
-
-        :param asset: The name of the asset to send.
-        :param cache_control: The value of the cache-control header.
-        :param scope: The scope.
-        :param receive: The event-receive function.
-        :param send: The event-send function.
-        """
-        await self._handle(
-            self._assets[self._hashes[asset]],
-            cache_control,
-            scope,
-            receive,
-            send,
-        )
-
     async def _handle(
         self,
         asset: _Asset,
