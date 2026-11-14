@@ -53,6 +53,7 @@ disable = [
 	"too-few-public-methods",
 	"too-many-instance-attributes",
 	"too-many-locals",
+	"too-many-return-statements",
 ]
 
 [tool.pyright]
@@ -76,6 +77,7 @@ ignore = [
 	"CPY001", # missing-copyright-notice
 	"D203", # one-blank-line-before-class
 	"D212", # multi-line-summary-first-line
+	"PLR0911", # too-many-return-statements
 	"S101", # assert
 ]
 select = ["ALL"]

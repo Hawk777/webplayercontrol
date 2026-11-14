@@ -3,6 +3,7 @@
 import json
 from asyncio import TaskGroup, wait_for
 from contextlib import AsyncExitStack, closing, suppress
+from functools import partial
 from typing import TYPE_CHECKING
 
 from .assets import AssetHandler
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
     )
 
     from .mpris import Monitor
+    from .utils import HTTPApplication
 
 _KEEPALIVE_TIMEOUT = 15
 """How many seconds to wait before sending an empty SSE event."""
@@ -393,6 +395,43 @@ class _App:
                 await send({"type": "http.response.start", "status": 204})
                 await send({"type": "http.response.body", "body": b""})
 
+    def _resolve_url(self, scope: HTTPScope) -> HTTPApplication | None:
+        """
+        Look up the handler that should handle a request based on its URL.
+
+        :param scope: The scope.
+        :return: The proper handler, or None to return 404.
+        """
+        # Sanity check and relativize path.
+        root_path = scope["root_path"]
+        path = scope["path"]
+        if not path.startswith(root_path):
+            return None
+        path = path[len(root_path) :]
+
+        # If we are mounted at /foo, and that is the URL the user requested, redirect to
+        # /foo/.
+        if not root_path.endswith("/") and path == "":
+            return self._redirect_add_slash
+
+        # If the path doesn’t start with /, we don’t know how to deal with it. If it
+        # does, remove the leading slash.
+        if not path.startswith("/"):
+            return None
+        path = path[1:]
+
+        # Send content-addressable static assets.
+        if (asset_handler := self._assets.handler_for_hash(path)) is not None:
+            return asset_handler
+
+        # Handle other requests.
+        if path == "":
+            return self._assets.handler_for_name("index.html", b"max-age=60")
+        if path.startswith("players/"):
+            path = path.removeprefix("players/")
+            return partial(self._handle_players_url, path)
+        return None
+
     async def run_http(
         self,
         scope: HTTPScope,
@@ -412,41 +451,15 @@ class _App:
             msg = "This application requires a server with ASGI HTTP spec ≥ 2.0"
             raise ValueError(msg)
 
-        # Sanity check and relativize path.
-        root_path = scope["root_path"]
-        path = scope["path"]
-        if not path.startswith(root_path):
-            msg = "path does not start with root_path"
-            raise ValueError(msg)
-        path = path[len(root_path) :]
-
-        # If we are mounted at /foo, and that is the URL the user requested, redirect to
-        # /foo/.
-        if not root_path.endswith("/") and path == "":
-            await self._redirect_add_slash(scope, receive, send)
-            return
-
-        # If the path doesn’t start with /, we don’t know how to deal with it. If it
-        # does, remove the leading slash.
-        if not path.startswith("/"):
+        # Look up a handler.
+        handler = self._resolve_url(scope)
+        if handler is None:
             await discard_request(receive)
             await send_error(send, 404, "Not Found")
             return
-        path = path[1:]
 
-        # Send content-addressable static assets.
-        if await self._assets.maybe_handle_cas(path, scope, receive, send):
-            return
-
-        # Handle other requests.
-        if path == "":
-            await self._assets.handle("index.html", b"max-age=60", scope, receive, send)
-        elif path.startswith("players/"):
-            path = path.removeprefix("players/")
-            await self._handle_players_url(path, scope, receive, send)
-        else:
-            await discard_request(receive)
-            await send_error(send, 404, "Not Found")
+        # Run the handler.
+        await handler(scope, receive, send)
 
 
 async def main(
