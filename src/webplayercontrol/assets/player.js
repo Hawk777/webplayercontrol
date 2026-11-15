@@ -13,7 +13,7 @@ const lowerFirst = function (string) {
 };
 
 /*
- * Display a status message for an error or reconnection.
+ * Displays a status message for an error or reconnection.
  *
  * All controls are disabled.
  */
