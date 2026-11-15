@@ -20,6 +20,12 @@ Method Not Allowed responses if the method is `HEAD`.
 All URLs should support the `OPTIONS` method. They previously did not,
 returning 405 Method Not Allowed instead. They now do.
 
+The page visibility API is now used to close the SSE connection when the page
+is not visible and automatically reopen it when it becomes visible again. This
+prevents errors on browsers which forcefully close the SSE connection when the
+page is hidden, as well as saving resources due to not keeping the connection
+open when it is not needed.
+
 Changes in 1.0.2
 ================
 
