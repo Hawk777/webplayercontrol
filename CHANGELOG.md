@@ -1,3 +1,13 @@
+Changes in 1.0.3
+================
+
+Bug fixes
+---------
+
+The command URLs for controlling a player previously allowed any HTTP method.
+They now correctly only allow `POST` requests, returning 405 Method Not Allowed
+for any other.
+
 Changes in 1.0.2
 ================
 

@@ -326,6 +326,7 @@ class _App:
                     )
                     tg.create_task(self._handle_player_status_disconnect(receive))
 
+    @allows_method("POST")
     @discards_request
     async def _handle_command(
         self,
