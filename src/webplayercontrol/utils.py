@@ -33,7 +33,7 @@ class _PreventBodyError(Exception):
     """
     Raised after response headers are sent to prevent the response body from being sent.
 
-    This is used to support HEAD requests.
+    This is used to support HEAD and OPTIONS requests.
     """
 
     __slots__ = ()
@@ -97,7 +97,7 @@ def allows_method[Cls, **Args](
 
     :param method: The required HTTP method.
     """
-    all_allowed = {method}
+    all_allowed = {method, "OPTIONS"}
     if method == "GET":
         all_allowed.add("HEAD")
     allow_header = (b"allow", ", ".join(all_allowed).encode("UTF-8"))
@@ -114,6 +114,18 @@ def allows_method[Cls, **Args](
             *args: Args.args,
             **kwargs: Args.kwargs,
         ) -> None:
+            if scope["method"] == "OPTIONS":
+                await discard_request(receive)
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 204,
+                        "headers": [allow_header],
+                    },
+                )
+                await send({"type": "http.response.body", "body": b""})
+                return
+
             is_head = scope["method"] == "HEAD"
 
             @wraps(send)

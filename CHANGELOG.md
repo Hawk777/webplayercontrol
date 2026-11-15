@@ -17,6 +17,9 @@ They previously did not, returning 405 Method Not Allowed instead. They now do.
 Also, URLs that do not support `GET` now no longer send a body in their 405
 Method Not Allowed responses if the method is `HEAD`.
 
+All URLs should support the `OPTIONS` method. They previously did not,
+returning 405 Method Not Allowed instead. They now do.
+
 Changes in 1.0.2
 ================
 
