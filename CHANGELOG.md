@@ -12,6 +12,11 @@ All HTTP responses may, and HTTP 405 Method Not Allowed responses *must*,
 contain an `Allow` header indicating what HTTP methods are permitted to the
 given URL. This was previously not sent. It now is.
 
+All URLs that support the `GET` method should also support the `HEAD` method.
+They previously did not, returning 405 Method Not Allowed instead. They now do.
+Also, URLs that do not support `GET` now no longer send a body in their 405
+Method Not Allowed responses if the method is `HEAD`.
+
 Changes in 1.0.2
 ================
 
